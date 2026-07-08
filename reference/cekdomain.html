@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chrome -->
+<style>
+/* Credit line — bottom-right */
+.design-ui-credit {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  font: 11px/1 system-ui, sans-serif;
+  color: rgba(128,128,128,0.5);
+  pointer-events: none;
+  z-index: 2147483647;
+  transition: opacity 0.4s ease;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+
+/* Hide chrome on touch devices */
+@media (hover: none) {
+  .design-ui-credit { display: none; }
+}
+
+/* Print fixes */
+@media print {
+  * {
+    transition: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+  }
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .design-ui-credit { display: none !important; }
+}
+
+</style>
+<script>
+(function () {
+    // Design-ui pages are single compositions, so the whole body is editable.
+    function markEditable() {
+        document.body.classList.add('artifact-editable');
+    }
+
+    // Credit badge with idle-fade. Hover devices only.
+    function initChromeUI() {
+        if (!matchMedia('(hover: hover)').matches) return;
+
+        var credit = document.createElement('div');
+        credit.className = 'design-ui-credit';
+        credit.setAttribute('aria-hidden', 'true');
+        credit.innerHTML = '\u{1F49C} by ClickUp Brain';
+        document.body.appendChild(credit);
+
+        var timer = null;
+        var fade = function (out) { credit.style.opacity = out ? '0' : ''; };
+        fade(true);
+        var show = function () {
+            fade(false);
+            clearTimeout(timer);
+            timer = setTimeout(function () { fade(true); }, 3000);
+        };
+        document.addEventListener('mousemove', show);
+        show();
+    }
+
+    function init() {
+        markEditable();
+        initChromeUI();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chrome -->
+<!-- skill:libraries -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js" integrity="sha384-wHFvAtjmgnkA2PJcMsDaCgdipf7X7YV44X/igbLHpvGiq6T5/PvFKl93grpvtbQT" crossorigin="anonymous"></script>
+<script>document.addEventListener("DOMContentLoaded",()=>lucide.createIcons())</script>
+<!-- /skill:libraries -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CekDomain.ink - Check Domain Availability Instantly</title>
+<meta name="description" content="Check whether your domain name is available, get smart domain suggestions, and continue registration easily with CekDomain.ink." />
+<meta property="og:title" content="CekDomain.ink" />
+<meta property="og:description" content="Find and register your perfect domain name instantly." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --paper: oklch(98.6% 0.008 300);
+  --paper-2: oklch(97% 0.011 300);
+  --surface: oklch(100% 0 0);
+  --ink-900: oklch(23% 0.035 300);
+  --ink-700: oklch(38% 0.045 300);
+  --ink-500: oklch(52% 0.03 300);
+  --ink-400: oklch(64% 0.022 300);
+  --primary: oklch(48% 0.17 295);
+  --primary-600: oklch(43% 0.18 295);
+  --primary-700: oklch(37% 0.16 295);
+  --primary-soft: oklch(94% 0.03 295);
+  --primary-tint: oklch(96.5% 0.018 295);
+  --success: oklch(58% 0.14 158);
+  --success-soft: oklch(95% 0.045 158);
+  --success-ink: oklch(38% 0.09 158);
+  --warn: oklch(64% 0.16 45);
+  --warn-soft: oklch(95.5% 0.04 55);
+  --warn-ink: oklch(45% 0.13 42);
+  --danger: oklch(58% 0.17 22);
+  --danger-soft: oklch(96% 0.03 22);
+  --muted-dot: oklch(70% 0.02 300);
+  --border: oklch(91% 0.012 300);
+  --border-strong: oklch(85% 0.016 300);
+  --shadow-sm: 0 1px 2px oklch(30% 0.03 300 / 0.06), 0 1px 3px oklch(30% 0.03 300 / 0.05);
+  --shadow-md: 0 8px 24px oklch(30% 0.04 300 / 0.08), 0 2px 6px oklch(30% 0.04 300 / 0.05);
+  --shadow-lg: 0 24px 60px oklch(30% 0.06 300 / 0.14), 0 8px 20px oklch(30% 0.05 300 / 0.08);
+  --shadow-glow: 0 20px 50px oklch(48% 0.17 295 / 0.22);
+  --ease-out-quint: cubic-bezier(0.22,1,0.36,1);
+  --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
+  --r-sm: 10px; --r-md: 16px; --r-lg: 24px; --r-xl: 32px; --r-full: 999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:"Manrope",system-ui,sans-serif;
+  background:var(--paper);
+  color:var(--ink-900);
+  line-height:1.6;
+  font-optical-sizing:auto;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.08;text-wrap:balance;letter-spacing:-0.01em}
+p{text-wrap:pretty}
+a{color:inherit;text-decoration:none}
+.mono{font-family:"JetBrains Mono",monospace;font-feature-settings:"liga" 0}
+.wrap{width:100%;max-width:1180px;margin:0 auto;padding:0 24px}
+.eyebrow{font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--primary-600)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* decorative background */
+.bg-orbs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5}
+.orb.a{width:520px;height:520px;top:-180px;right:-120px;background:radial-gradient(circle,oklch(70% 0.15 300/.7),transparent 70%)}
+.orb.b{width:460px;height:460px;top:220px;left:-160px;background:radial-gradient(circle,oklch(72% 0.13 250/.55),transparent 70%)}
+.orb.c{width:380px;height:380px;top:640px;right:8%;background:radial-gradient(circle,oklch(75% 0.12 340/.4),transparent 70%)}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+  background-image:radial-gradient(oklch(30% 0.03 300/.05) 1px,transparent 0);background-size:22px 22px}
+
+/* header */
+header{position:sticky;top:0;z-index:50;transition:padding .3s var(--ease-out-quint)}
+.nav{
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  margin-top:14px;padding:10px 14px 10px 20px;
+  background:oklch(100% 0 0/.72);
+  backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid oklch(100% 0 0/.6);
+  box-shadow:var(--shadow-sm),inset 0 1px 0 oklch(100% 0 0/.8);
+  border-radius:var(--r-full);
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:"Fraunces",serif;font-weight:600;font-size:1.28rem;letter-spacing:-0.02em}
+.brand .dot{color:var(--primary)}
+.logo-mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--primary),var(--primary-700));color:#fff;box-shadow:var(--shadow-sm),inset 0 1px 0 oklch(100% 0 0/.25)}
+.logo-mark i{width:19px;height:19px}
+.nav-links{display:flex;gap:6px}
+.nav-links a{font-size:.94rem;font-weight:600;color:var(--ink-700);padding:8px 14px;border-radius:var(--r-full);transition:.2s var(--ease-out-quint)}
+.nav-links a:hover{color:var(--ink-900);background:var(--primary-tint)}
+.nav-cta{display:flex;align-items:center;gap:8px}
+.btn{
+  font-family:"Manrope",sans-serif;font-weight:700;font-size:.94rem;cursor:pointer;
+  border:none;border-radius:var(--r-full);padding:12px 22px;
+  display:inline-flex;align-items:center;gap:8px;transition:.22s var(--ease-out-quint);white-space:nowrap;
+}
+.btn i{width:17px;height:17px}
+.btn-primary{background:linear-gradient(140deg,var(--primary),var(--primary-700));color:#fff;box-shadow:var(--shadow-glow),inset 0 1px 0 oklch(100% 0 0/.25)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 26px 60px oklch(48% 0.17 295/.32),inset 0 1px 0 oklch(100% 0 0/.25)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:var(--shadow-sm)}
+.btn-ghost{background:transparent;color:var(--ink-700);border:1px solid var(--border-strong)}
+.btn-ghost:hover{background:var(--surface);color:var(--ink-900);border-color:var(--ink-400)}
+.hamburger{display:none;background:none;border:none;cursor:pointer;color:var(--ink-900);padding:8px}
+
+/* hero */
+.hero{position:relative;z-index:2;padding:72px 0 40px;text-align:center}
+.badge-pill{display:inline-flex;align-items:center;gap:9px;font-size:.82rem;font-weight:600;color:var(--ink-700);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-full);padding:7px 8px 7px 14px;box-shadow:var(--shadow-sm);margin-bottom:26px}
+.badge-pill .live{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 4px var(--success-soft);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.badge-pill .tag{background:var(--primary-soft);color:var(--primary-700);font-weight:700;padding:3px 10px;border-radius:var(--r-full);font-size:.76rem}
+.hero h1{font-size:clamp(2.5rem,6.2vw,4.6rem);font-weight:600;letter-spacing:-0.03em;max-width:16ch;margin:0 auto}
+.hero h1 em{font-style:italic;color:var(--primary);font-weight:500;position:relative}
+.hero h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.12em;background:oklch(70% 0.15 295/.35);border-radius:2px;z-index:-1}
+.hero .sub{font-size:clamp(1.05rem,2.2vw,1.28rem);color:var(--ink-500);max-width:56ch;margin:22px auto 0;font-weight:450}
+
+/* search */
+.search-shell{position:relative;z-index:2;max-width:720px;margin:38px auto 0}
+.search-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);
+  padding:14px;box-shadow:var(--shadow-lg);
+  transition:box-shadow .3s var(--ease-out-quint),border-color .3s var(--ease-out-quint);
+}
+.search-card:focus-within{border-color:oklch(70% 0.14 295);box-shadow:var(--shadow-lg),0 0 0 4px var(--primary-soft)}
+.search-row{display:flex;gap:10px;align-items:center}
+.search-input-wrap{flex:1;display:flex;align-items:center;gap:12px;padding:0 6px 0 16px}
+.search-input-wrap>i{width:22px;height:22px;color:var(--ink-400);flex-shrink:0}
+#domainInput{
+  flex:1;border:none;outline:none;background:transparent;
+  font-family:"JetBrains Mono",monospace;font-size:1.12rem;font-weight:500;color:var(--ink-900);
+  padding:18px 0;letter-spacing:-0.01em;min-width:0;
+}
+#domainInput::placeholder{color:var(--ink-400);font-weight:400}
+.search-btn{padding:16px 26px;font-size:1rem}
+.chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;margin-top:18px}
+.chips .label{font-size:.85rem;color:var(--ink-400);font-weight:600;align-self:center;margin-right:2px}
+.chip{
+  font-family:"JetBrains Mono",monospace;font-size:.84rem;font-weight:500;color:var(--ink-700);cursor:pointer;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-full);padding:7px 15px;transition:.2s var(--ease-out-quint);
+}
+.chip:hover{color:var(--primary-700);border-color:oklch(78% 0.1 295);background:var(--primary-tint);transform:translateY(-1px)}
+
+/* result */
+#result{position:relative;z-index:2;max-width:720px;margin:22px auto 0;min-height:4px}
+.res{border-radius:var(--r-lg);padding:26px;animation:rise .5s var(--ease-out-expo) both}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.res-head{display:flex;align-items:flex-start;gap:16px}
+.res-icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;flex-shrink:0}
+.res-icon i{width:26px;height:26px}
+.res-body{flex:1;min-width:0}
+.res-title{font-family:"Fraunces",serif;font-size:1.4rem;font-weight:600;letter-spacing:-0.02em;line-height:1.15}
+.res-sub{font-size:.98rem;margin-top:5px;font-weight:500}
+.res-sub b{font-family:"JetBrains Mono",monospace;font-weight:600;word-break:break-all}
+.res.available{background:var(--success-soft);border:1px solid oklch(85% 0.08 158)}
+.res.available .res-icon{background:var(--success);color:#fff;box-shadow:0 8px 20px oklch(58% 0.14 158/.35)}
+.res.available .res-title{color:var(--success-ink)}
+.res.available .res-sub{color:var(--success-ink)}
+.res.taken{background:var(--warn-soft);border:1px solid oklch(87% 0.07 55)}
+.res.taken .res-icon{background:var(--warn);color:#fff;box-shadow:0 8px 20px oklch(64% 0.16 45/.32)}
+.res.taken .res-title{color:var(--warn-ink)}
+.res.taken .res-sub{color:var(--warn-ink)}
+.res.invalid{background:var(--danger-soft);border:1px solid oklch(88% 0.06 22)}
+.res.invalid .res-icon{background:var(--danger);color:#fff}
+.res.invalid .res-title{color:oklch(42% 0.14 22)}
+.res.invalid .res-sub{color:oklch(45% 0.12 22)}
+.checkout-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;align-items:center}
+.btn-checkout{background:linear-gradient(140deg,var(--success),oklch(50% 0.13 158));color:#fff;padding:15px 26px;font-size:1rem;box-shadow:0 14px 34px oklch(58% 0.14 158/.32),inset 0 1px 0 oklch(100% 0 0/.25)}
+.btn-checkout:hover{transform:translateY(-2px);box-shadow:0 20px 44px oklch(58% 0.14 158/.4),inset 0 1px 0 oklch(100% 0 0/.25)}
+.price-hint{font-size:.88rem;color:var(--success-ink);font-weight:600}
+.price-hint b{font-family:"JetBrains Mono",monospace}
+
+/* loading */
+.loading{display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px 26px;box-shadow:var(--shadow-md)}
+.spinner{width:26px;height:26px;border:3px solid var(--primary-soft);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading .lt{font-weight:600;color:var(--ink-700)}
+.loading .lt small{display:block;font-weight:450;color:var(--ink-400);font-size:.86rem;font-family:"JetBrains Mono",monospace}
+
+/* suggestions */
+.sugg{margin-top:22px;animation:rise .5s var(--ease-out-expo) .1s both}
+.sugg-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 4px;flex-wrap:wrap}
+.sugg-head h3{font-size:1.15rem;font-weight:600}
+.sugg-head .cnt{font-size:.8rem;font-weight:700;color:var(--primary-700);background:var(--primary-soft);padding:3px 10px;border-radius:var(--r-full)}
+.sugg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.sc{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;
+  box-shadow:var(--shadow-sm);transition:.22s var(--ease-out-quint);
+  animation:rise .45s var(--ease-out-expo) both;animation-delay:calc(var(--i,0)*55ms);
+}
+.sc:hover{border-color:oklch(80% 0.09 295);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.sc.avail{border-color:oklch(86% 0.07 158);background:linear-gradient(180deg,var(--surface),oklch(98% 0.02 158))}
+.sc.avail:hover{border-color:oklch(78% 0.1 158)}
+.sc-name{min-width:0}
+.sc-domain{font-family:"JetBrains Mono",monospace;font-size:.98rem;font-weight:600;color:var(--ink-900);word-break:break-all}
+.sc-status{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:600;margin-top:3px}
+.sc-status .d{width:7px;height:7px;border-radius:50%}
+.sc-status.ok{color:var(--success-ink)} .sc-status.ok .d{background:var(--success)}
+.sc-status.taken{color:var(--ink-400)} .sc-status.taken .d{background:var(--muted-dot)}
+.sc-status.unknown{color:var(--ink-400)} .sc-status.unknown .d{background:var(--ink-400)}
+.sc-check{background:var(--primary-tint);color:var(--primary-700);border:1px solid var(--primary-soft);border-radius:var(--r-full);padding:9px 15px;font-size:.83rem;font-weight:700;cursor:pointer;transition:.2s var(--ease-out-quint);flex-shrink:0;font-family:"Manrope",sans-serif;white-space:nowrap}
+.sc-check:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.sc-check.go{background:linear-gradient(140deg,var(--success),oklch(50% 0.13 158));color:#fff;border:none;box-shadow:0 6px 16px oklch(58% 0.14 158/.3)}
+.sc-check.go:hover{transform:translateY(-1px);box-shadow:0 10px 22px oklch(58% 0.14 158/.4)}
+
+/* sections */
+section.block{position:relative;z-index:2;padding:88px 0}
+.sec-head{text-align:center;max-width:640px;margin:0 auto 52px}
+.sec-head h2{font-size:clamp(2rem,4vw,2.9rem);font-weight:600;letter-spacing:-0.025em;margin-top:14px}
+.sec-head p{color:var(--ink-500);font-size:1.08rem;margin-top:14px}
+
+.feat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.feat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px;box-shadow:var(--shadow-sm);transition:.28s var(--ease-out-quint);position:relative;overflow:hidden}
+.feat:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.feat.big{grid-column:span 3}
+.feat.med{grid-column:span 3}
+.feat.sm{grid-column:span 2}
+.feat-ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:var(--primary-tint);color:var(--primary-600);margin-bottom:18px}
+.feat-ic i{width:23px;height:23px}
+.feat h3{font-size:1.25rem;font-weight:600;letter-spacing:-0.01em}
+.feat p{color:var(--ink-500);margin-top:8px;font-size:.96rem}
+.feat.big{background:linear-gradient(150deg,var(--primary),var(--primary-700));color:#fff;border:none;box-shadow:var(--shadow-glow)}
+.feat.big .feat-ic{background:oklch(100% 0 0/.16);color:#fff}
+.feat.big p{color:oklch(100% 0 0/.82)}
+.feat.big .mini-demo{margin-top:20px;background:oklch(100% 0 0/.12);border:1px solid oklch(100% 0 0/.2);border-radius:12px;padding:12px 14px;font-family:"JetBrains Mono",monospace;font-size:.85rem}
+.feat.big .mini-demo .ok{color:oklch(90% 0.12 158)}
+
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;position:relative}
+.step{padding:28px 22px;position:relative}
+.step-n{font-family:"Fraunces",serif;font-size:2.6rem;font-weight:500;color:var(--primary);opacity:.28;line-height:1}
+.step h3{font-size:1.12rem;font-weight:600;margin-top:12px}
+.step p{color:var(--ink-500);font-size:.94rem;margin-top:6px}
+.step:not(:last-child)::after{content:"";position:absolute;top:34px;right:-4px;width:8px;height:8px;border-top:2px solid var(--border-strong);border-right:2px solid var(--border-strong);transform:rotate(45deg)}
+
+.faq-wrap{max-width:760px;margin:0 auto}
+.faq{border-bottom:1px solid var(--border)}
+.faq summary{list-style:none;cursor:pointer;padding:24px 4px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-family:"Fraunces",serif;font-size:1.18rem;font-weight:500;color:var(--ink-900)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .ic{width:32px;height:32px;border-radius:50%;background:var(--primary-tint);color:var(--primary-600);display:grid;place-items:center;flex-shrink:0;transition:.3s var(--ease-out-quint)}
+.faq summary .ic i{width:18px;height:18px}
+.faq[open] summary .ic{transform:rotate(45deg);background:var(--primary);color:#fff}
+.faq .ans{padding:0 4px 26px;color:var(--ink-500);font-size:1rem;max-width:68ch}
+
+.cta-band{position:relative;z-index:2;max-width:1180px;margin:20px auto;padding:0 24px}
+.cta-inner{background:linear-gradient(145deg,var(--ink-900),oklch(30% 0.06 295));border-radius:var(--r-xl);padding:64px 48px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow-lg)}
+.cta-inner::before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,oklch(60% 0.18 295/.55),transparent 70%);top:-160px;right:-80px;filter:blur(30px)}
+.cta-inner h2{color:oklch(98% 0.01 300);font-size:clamp(1.9rem,3.6vw,2.7rem);font-weight:600;position:relative}
+.cta-inner p{color:oklch(80% 0.02 300);margin:14px auto 28px;max-width:48ch;position:relative}
+.cta-inner .btn{position:relative}
+
+footer{position:relative;z-index:2;border-top:1px solid var(--border);margin-top:40px;padding:56px 0 32px}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:40px}
+.foot-brand p{color:var(--ink-500);font-size:.95rem;margin-top:14px;max-width:38ch}
+.foot-col h4{font-family:"Manrope",sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-400);margin-bottom:16px}
+.foot-col a{display:block;color:var(--ink-700);font-size:.95rem;font-weight:500;padding:6px 0;transition:.2s}
+.foot-col a:hover{color:var(--primary-700)}
+.foot-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:44px;padding-top:24px;border-top:1px solid var(--border);color:var(--ink-400);font-size:.88rem}
+
+@media(max-width:900px){
+  .nav-links{display:none}
+  .feat-grid{grid-template-columns:repeat(4,1fr)}
+  .feat.big,.feat.med{grid-column:span 4}
+  .feat.sm{grid-column:span 2}
+  .steps{grid-template-columns:repeat(2,1fr);gap:20px}
+  .step:not(:last-child)::after{display:none}
+  .foot-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .wrap{padding:0 18px}
+  .nav-cta .btn-ghost{display:none}
+  .search-row{flex-direction:column;align-items:stretch}
+  .search-input-wrap{padding:4px 6px 4px 14px}
+  .search-btn{justify-content:center}
+  .feat-grid{grid-template-columns:1fr}
+  .feat.big,.feat.med,.feat.sm{grid-column:span 1}
+  .steps{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr}
+  .cta-inner{padding:44px 26px}
+  section.block{padding:64px 0}
+}
+</style>
+</head>
+<body>
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb a"></div><div class="orb b"></div><div class="orb c"></div>
+</div>
+<div class="grain" aria-hidden="true"></div>
+
+<header>
+  <div class="wrap">
+    <nav class="nav" aria-label="Primary">
+      <a href="#home" class="brand">
+        <span class="logo-mark"><i data-lucide="feather"></i></span>
+        CekDomain<span class="dot">.ink</span>
+      </a>
+      <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#features">Features</a>
+        <a href="#how">How It Works</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="nav-cta">
+        <button class="btn btn-ghost hamburger" id="hamburger" aria-label="Menu"><i data-lucide="menu"></i></button>
+        <button class="btn btn-primary" onclick="focusSearch()"><i data-lucide="search"></i>Check Domain</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="home">
+  <section class="hero">
+    <div class="wrap">
+      <span class="badge-pill">
+        <span class="live"></span> Live domain lookup
+        <span class="tag">.com .net .id .ink</span>
+      </span>
+      <h1>Find your <em>perfect</em> domain name instantly</h1>
+      <p class="sub">Check domain availability, discover smart alternatives, and continue registration in seconds.</p>
+
+      <div class="search-shell">
+        <div class="search-card">
+          <form class="search-row" id="searchForm" autocomplete="off">
+            <label class="search-input-wrap">
+              <span class="sr-only">Domain name</span>
+              <i data-lucide="globe"></i>
+              <input id="domainInput" type="text" inputmode="url" spellcheck="false"
+                aria-label="Enter a domain name to check"
+                placeholder="Enter your domain, e.g. cekdomain.com" />
+            </label>
+            <button type="submit" class="btn btn-primary search-btn" id="searchBtn">
+              <i data-lucide="scan-search"></i> Check Availability
+            </button>
+          </form>
+        </div>
+        <div class="chips">
+          <span class="label">Try:</span>
+          <button class="chip" data-domain="bisnisku.com">bisnisku.com</button>
+          <button class="chip" data-domain="tokoonline.com">tokoonline.com</button>
+          <button class="chip" data-domain="branddigital.com">branddigital.com</button>
+        </div>
+      </div>
+
+      <div id="result" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">Everything you need</span>
+        <h2>Built for a fast, confident domain hunt</h2>
+        <p>From the first keystroke to checkout, every step is designed to feel instant and trustworthy.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat big">
+          <div class="feat-ic"><i data-lucide="zap"></i></div>
+          <h3>Instant domain check</h3>
+          <p>Type a name and get a clear answer in a heartbeat. No refreshes, no clutter, just a straight yes or no.</p>
+          <div class="mini-demo">
+            <div>&gt; check cekdomain.ink</div>
+            <div class="ok">&check; available &middot; ready to register</div>
+          </div>
+        </div>
+        <div class="feat med">
+          <div class="feat-ic"><i data-lucide="sparkles"></i></div>
+          <h3>Smart name suggestions</h3>
+          <p>Taken? We generate readable, brandable alternatives that are actually available, so you never hit a dead end.</p>
+        </div>
+        <div class="feat sm">
+          <div class="feat-ic"><i data-lucide="link-2"></i></div>
+          <h3>Same extension suggestions</h3>
+          <p>Search a .com, get .com ideas. Your TLD stays consistent.</p>
+        </div>
+        <div class="feat sm">
+          <div class="feat-ic"><i data-lucide="rocket"></i></div>
+          <h3>Fast checkout redirect</h3>
+          <p>One tap sends you straight to registration with the domain pre-filled.</p>
+        </div>
+        <div class="feat sm">
+          <div class="feat-ic"><i data-lucide="shield-check"></i></div>
+          <h3>Clean and secure search</h3>
+          <p>Input is sanitized and validated. Lookups run server-side, keys never leak.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="how" style="background:var(--paper-2)">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">How it works</span>
+        <h2>Four steps to your domain</h2>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="step-n">01</div><h3>Enter your domain</h3><p>Type any name and extension, like tokoku.com or brand.id.</p></div>
+        <div class="step"><div class="step-n">02</div><h3>Check availability</h3><p>We validate, normalize, and look it up in real time.</p></div>
+        <div class="step"><div class="step-n">03</div><h3>Choose a domain</h3><p>Grab it if it's free, or pick from smart same-TLD alternatives.</p></div>
+        <div class="step"><div class="step-n">04</div><h3>Continue to checkout</h3><p>Head to registration with your domain already attached.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="faq">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="eyebrow">FAQ</span>
+        <h2>Questions, answered</h2>
+      </div>
+      <div class="faq-wrap">
+        <details class="faq" open>
+          <summary>What is CekDomain.ink? <span class="ic"><i data-lucide="plus"></i></span></summary>
+          <div class="ans">CekDomain.ink is a modern domain availability checker. Type a domain, find out instantly if it's free or taken, and get brandable alternatives when it's already registered, all in one clean screen.</div>
+        </details>
+        <details class="faq">
+          <summary>How does the domain checker work? <span class="ic"><i data-lucide="plus"></i></span></summary>
+          <div class="ans">Your input is cleaned and validated, then sent to a server-side endpoint that checks availability. In production it plugs into a real WHOIS/domain API; in development it uses a deterministic mock so you can test the full flow without any keys.</div>
+        </details>
+        <details class="faq">
+          <summary>Can I get suggestions with the same extension? <span class="ic"><i data-lucide="plus"></i></span></summary>
+          <div class="ans">Always. If you search a .com and it's taken, every suggestion is also a .com. Search a .net and you get .net ideas. The TLD you chose is respected across all suggestions, and we surface the ones that look available first.</div>
+        </details>
+        <details class="faq">
+          <summary>What happens after I click checkout? <span class="ic"><i data-lucide="plus"></i></span></summary>
+          <div class="ans">You're redirected to the registration page with your chosen domain passed along as a query parameter, so it's ready to complete without retyping.</div>
+        </details>
+        <details class="faq">
+          <summary>Does this guarantee domain ownership? <span class="ic"><i data-lucide="plus"></i></span></summary>
+          <div class="ans">No. Availability can change second to second. A domain is only yours once registration is fully completed and confirmed by the registrar at checkout.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-band">
+    <div class="cta-inner">
+      <h2>Your domain is one search away</h2>
+      <p>Check availability, explore alternatives, and register in seconds.</p>
+      <button class="btn btn-primary" onclick="focusSearch()"><i data-lucide="search"></i> Check a domain now</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="#home" class="brand">
+          <span class="logo-mark"><i data-lucide="feather"></i></span>
+          CekDomain<span class="dot">.ink</span>
+        </a>
+        <p>The fastest way to check domain availability, discover smart alternatives, and continue registration in seconds.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#how">How It Works</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://marketku.id/domain/product/domain-murah-a82b6c2e-af2d-4c60-bfd7-1d33d2f71e04" target="_blank" rel="noopener">Register a domain</a>
+      </div>
+      <div class="foot-col">
+        <h4>Extensions</h4>
+        <a href="#home">.com domains</a>
+        <a href="#home">.net domains</a>
+        <a href="#home">.id domains</a>
+        <a href="#home">.ink domains</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; <span id="year"></span> CekDomain.ink. All rights reserved.</span>
+      <span>Made for finding great domains, fast.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   CekDomain.ink - client logic (mirrors the Next.js backend)
+   Fixes: stale-state, request race protection, smarter engine.
+   ============================================================ */
+const CHECKOUT_BASE = "https://marketku.id/domain/product/domain-murah-a82b6c2e-af2d-4c60-bfd7-1d33d2f71e04";
+
+/* --- normalization + validation ------------------------------ */
+function normalizeDomain(raw){
+  if(!raw) return "";
+  let d = String(raw).trim().toLowerCase();
+  d = d.replace(/^https?:\/\//,"");   // strip protocol
+  d = d.replace(/^www\./,"");          // strip www.
+  d = d.split(/[\/?#]/)[0];            // drop path / query / hash
+  d = d.replace(/\.+$/,"");            // trailing dots
+  return d;
+}
+function validateDomain(domain){
+  if(!domain) return {ok:false};
+  if(/\s/.test(domain)) return {ok:false};
+  if(!domain.includes(".")) return {ok:false};
+  const re = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
+  if(!re.test(domain)) return {ok:false};
+  return {ok:true};
+}
+function splitDomain(domain){
+  const i = domain.indexOf(".");
+  return { name: domain.slice(0,i), tld: domain.slice(i+1) };
+}
+
+/* --- checkout ------------------------------------------------- */
+function createCheckoutUrl(domain){
+  return `${CHECKOUT_BASE}?domain=${encodeURIComponent(domain)}`;
+}
+
+/* --- availability (deterministic mock; swap for real API) ----- */
+const FORCE_TAKEN = new Set(["google","facebook","youtube","amazon","apple","microsoft","cekdomain","tokoonline","branddigital","bisnisku","github","netflix"]);
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function checkDomainAvailability(domain){
+  const {name} = splitDomain(domain);
+  if(FORCE_TAKEN.has(name)) return false;
+  return (hashStr(domain) % 100) < 55; // ~55% available baseline
+}
+
+/* --- smarter suggestion engine ------------------------------- */
+const PREFIXES = ["get","try","use","go","hey","join","the","my","hello","super"];
+const SUFFIXES = ["ku","id","app","web","hub","lab","pro","site","store","digital","online","studio","works","media","space","cloud","tech","tools"];
+const BRANDABLE = ["hq","io","now","spot","zone","kit","base","point","link","co","up","fy"];
+const NUMBERS  = ["24","88","7","99","21"];
+
+/**
+ * Build a large candidate pool, keep the same TLD, dedupe,
+ * cap length at 24 chars before the TLD, check availability,
+ * and surface AVAILABLE names first. Numbers are last resort only.
+ */
+function generateDomainSuggestions(domain){
+  const {name, tld} = splitDomain(domain);
+  const base = name.replace(/-/g,"");
+  const seen = new Set();
+  const pool = [];
+  const add = v => {
+    if(v.length < 3 || v.length > 24) return;   // avoid ugly/too-long
+    if(seen.has(v)) return;
+    seen.add(v); pool.push(v);
+  };
+  // natural-reading suffixes first, then prefixes, then brandable tails
+  for(const s of SUFFIXES) add(base + s);
+  for(const p of PREFIXES) add(p + base);
+  for(const b of BRANDABLE) add(base + b);
+
+  // score availability via the (mock) checker
+  const scored = pool.map(v => {
+    const full = `${v}.${tld}`;
+    return { domain: full, available: checkDomainAvailability(full) };
+  });
+
+  const available = scored.filter(o => o.available);
+  const taken     = scored.filter(o => !o.available);
+
+  let picks = [...available, ...taken];
+
+  // number fallback ONLY if we can't surface enough available options
+  if(available.length < 4){
+    for(const n of NUMBERS){
+      const full = `${base}${n}.${tld}`;
+      if(!seen.has(base+n)){
+        seen.add(base+n);
+        const o = { domain: full, available: checkDomainAvailability(full) };
+        if(o.available) picks.splice(available.length, 0, o); // insert among available
+        else picks.push(o);
+      }
+    }
+  }
+
+  return picks.slice(0,6).map(o => ({
+    domain: o.domain,
+    available: o.available,
+    checkoutUrl: o.available ? createCheckoutUrl(o.domain) : null,
+  }));
+}
+
+/* --- response builder (simulates POST /api/check-domain) ----- */
+function buildResponse(domain){
+  const available = checkDomainAvailability(domain);
+  if(available){
+    return {
+      domain,
+      available: true,
+      message: "Domain is available for registration",
+      checkoutUrl: createCheckoutUrl(domain),
+      suggestions: [],
+    };
+  }
+  return {
+    domain,
+    available: false,
+    message: "Domain is already registered",
+    checkoutUrl: null,
+    suggestions: generateDomainSuggestions(domain),
+  };
+}
+
+/* --- DOM refs ------------------------------------------------- */
+const resultEl = document.getElementById("result");
+const inputEl  = document.getElementById("domainInput");
+const searchBtn = document.getElementById("searchBtn");
+const icons = () => window.lucide && lucide.createIcons();
+
+function focusSearch(){
+  inputEl.focus({preventScroll:true});
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function clearResult(){ resultEl.innerHTML = ""; }
+function setLoadingUI(on){ searchBtn.disabled = on; }
+
+/* --- renderers (each fully rebuilds the result card) --------- */
+function renderLoading(domain){
+  resultEl.innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="lt">Checking ${escapeHtml(domain)}…<small>looking up registry records</small></div>
+    </div>`;
+}
+function renderInvalid(){
+  resultEl.innerHTML = `
+    <div class="res invalid">
+      <div class="res-head">
+        <div class="res-icon"><i data-lucide="alert-triangle"></i></div>
+        <div class="res-body">
+          <div class="res-title">Invalid domain</div>
+          <div class="res-sub">Please enter a valid domain, for example <b>mantapnyoo.com</b></div>
+        </div>
+      </div>
+    </div>`;
+  icons();
+}
+function renderAvailable(data){
+  resultEl.innerHTML = `
+    <div class="res available">
+      <div class="res-head">
+        <div class="res-icon"><i data-lucide="check"></i></div>
+        <div class="res-body">
+          <div class="res-title">Great news! This domain is available.</div>
+          <div class="res-sub"><b>${escapeHtml(data.domain)}</b> is ready to register.</div>
+          <div class="checkout-row">
+            <a class="btn btn-checkout" href="${data.checkoutUrl}" target="_blank" rel="noopener">
+              <i data-lucide="shopping-cart"></i> Continue to Checkout
+            </a>
+            <span class="price-hint">Registration ready &middot; <b>${escapeHtml(data.domain)}</b> pre-filled</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  icons();
+}
+function renderTaken(data){
+  const sugg = data.suggestions;
+  const availCount = sugg.filter(s => s.available).length;
+  const {tld} = splitDomain(data.domain);
+  const cards = sugg.map((s,i)=>{
+    if(s.available){
+      return `
+        <div class="sc avail" style="--i:${i}">
+          <div class="sc-name">
+            <div class="sc-domain">${escapeHtml(s.domain)}</div>
+            <span class="sc-status ok"><span class="d"></span> available</span>
+          </div>
+          <a class="sc-check go" href="${s.checkoutUrl}" target="_blank" rel="noopener">Continue to Checkout</a>
+        </div>`;
+    }
+    return `
+      <div class="sc" style="--i:${i}">
+        <div class="sc-name">
+          <div class="sc-domain">${escapeHtml(s.domain)}</div>
+          <span class="sc-status taken"><span class="d"></span> registered</span>
+        </div>
+        <button class="sc-check" data-domain="${escapeHtml(s.domain)}">Check Another</button>
+      </div>`;
+  }).join("");
+
+  resultEl.innerHTML = `
+    <div class="res taken">
+      <div class="res-head">
+        <div class="res-icon"><i data-lucide="x"></i></div>
+        <div class="res-body">
+          <div class="res-title">This domain is already registered.</div>
+          <div class="res-sub">Try one of these available alternatives with the same extension.</div>
+        </div>
+      </div>
+    </div>
+    <div class="sugg">
+      <div class="sugg-head">
+        <h3>Smart alternatives</h3>
+        <span class="cnt">${availCount} available &middot; same .${escapeHtml(tld)}</span>
+      </div>
+      <div class="sugg-grid">${cards}</div>
+    </div>`;
+  icons();
+}
+
+/* --- main flow: race-safe, always latest input, no stale state */
+let requestId = 0;
+async function runCheck(rawValue){
+  const normalized = normalizeDomain(rawValue);
+
+  // reflect the cleaned value so the input is the single source of truth,
+  // while staying fully editable for the next manual search.
+  inputEl.value = normalized;
+
+  // guard invalid input and DO NOT keep any previous valid result visible
+  if(!validateDomain(normalized).ok){
+    requestId++;             // invalidate any in-flight request
+    setLoadingUI(false);
+    clearResult();
+    renderInvalid();
+    return;
+  }
+
+  // new request: bump the id, clear everything, show loading
+  const my = ++requestId;
+  clearResult();
+  setLoadingUI(true);
+  renderLoading(normalized);
+  resultEl.scrollIntoView({behavior:"smooth",block:"nearest"});
+
+  // simulate server latency (jittered so races are easy to trigger/verify)
+  await new Promise(r=>setTimeout(r, 600 + Math.random()*700));
+
+  // race protection: a newer search superseded this one -> discard
+  if(my !== requestId) return;
+
+  const data = buildResponse(normalized);   // fresh response for THIS domain
+  setLoadingUI(false);
+  if(data.available) renderAvailable(data);
+  else renderTaken(data);
+}
+
+/* --- events -------------------------------------------------- */
+// submit always reads the CURRENT input value at submit time
+document.getElementById("searchForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  runCheck(inputEl.value);
+});
+// example chips: fill input + check, but leave the field editable
+document.querySelectorAll(".chip").forEach(c=>{
+  c.addEventListener("click", ()=>runCheck(c.dataset.domain));
+});
+// "Check Another" on a registered suggestion: put it in the input + re-check
+resultEl.addEventListener("click", e=>{
+  const btn = e.target.closest(".sc-check[data-domain]");
+  if(btn) runCheck(btn.dataset.domain);
+});
+document.getElementById("hamburger").addEventListener("click", focusSearch);
+document.getElementById("year").textContent = new Date().getFullYear();
+
+icons();
+</script>
+</body>
+</html>
