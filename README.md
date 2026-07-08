@@ -22,34 +22,58 @@ the domain pre-filled.
 # 1. Install dependencies
 npm install
 
-# 2. Configure environment (defaults to the offline mock provider)
-cp .env.example .env.local
+# 2. Configure environment
+#    Local development (offline mock provider):
+cp .env.local.example .env.local
+#    Production-like (real RDAP lookups):
+#    cp .env.example .env.local   # then edit as needed
 
 # 3. Run the dev server
 npm run dev
 # open http://localhost:3000
 
 # Other scripts
-npm run build      # production build
+npm run build      # production build (no Google Fonts fetch required)
 npm run start      # run the production build
 npm run lint       # eslint
 npm run typecheck  # tsc --noEmit
 npm run test       # vitest unit tests
 ```
 
+## Provider modes (important)
+
+`DOMAIN_CHECK_PROVIDER` selects how availability is checked — **server-side only**:
+
+| Value      | Meaning                                                                 | Use in production?          |
+| ---------- | ----------------------------------------------------------------------- | --------------------------- |
+| `rdap`     | **Real** availability via the public RDAP protocol (no API keys needed) | ✅ Yes (default)            |
+| `mock`     | **Fake** deterministic results for local demo/testing only              | ❌ **Never** in production  |
+| `external` | Paid/third-party API (needs `DOMAIN_API_URL` + `DOMAIN_API_KEY`)        | ✅ Optional                 |
+
+- Production must use `rdap` (or `external`). **Do not deploy with `mock`.**
+- `.env.example` is the production-like template and uses `rdap`.
+- `.env.local.example` is the local template and uses `mock`.
+- If `external` is selected but its env vars are missing, the app logs a warning
+  and safely falls back to `rdap`.
+
 ## Environment variables
 
-| Variable                        | Description                                              | Default                 |
-| ------------------------------- | -------------------------------------------------------- | ----------------------- |
-| `DOMAIN_CHECK_PROVIDER`         | `rdap` (real, key-less) or `mock` (development only)     | `rdap`                  |
-| `DOMAIN_CHECK_TIMEOUT_MS`       | Upstream lookup timeout in milliseconds                  | `5000`                  |
-| `NEXT_PUBLIC_CHECKOUT_BASE_URL` | Checkout base URL; the domain is appended as `?domain=`  | marketku.id link        |
-| `NEXT_PUBLIC_SITE_URL`          | Canonical site URL for SEO metadata                      | `https://cekdomain.ink` |
+| Variable                        | Description                                                      | Default                 |
+| ------------------------------- | --------------------------------------------------------------- | ----------------------- |
+| `DOMAIN_CHECK_PROVIDER`         | `rdap` (real) · `mock` (dev only) · `external` (paid API)       | `rdap`                  |
+| `DOMAIN_CHECK_TIMEOUT_MS`       | Upstream lookup timeout in milliseconds                         | `5000`                  |
+| `NEXT_PUBLIC_CHECKOUT_BASE_URL` | Checkout base URL; the domain is appended as `?domain=`         | marketku.id link        |
+| `NEXT_PUBLIC_SITE_URL`          | Canonical site URL for SEO metadata                             | `https://cekdomain.ink` |
+| `SUGGESTION_CHECK_LIMIT`        | Suggestion candidates verified upstream per registered search   | `8`                     |
+| `SUGGESTION_RETURN_LIMIT`       | Suggestions returned to the client (available first)           | `6`                     |
+| `SUGGESTION_CHECK_CONCURRENCY`  | Parallel upstream suggestion checks                            | `3`                     |
+| `RATE_LIMIT_MAX`                | Max `/api/check-domain` requests per IP per window             | `20`                    |
+| `RATE_LIMIT_WINDOW_MS`          | Rate-limit window in milliseconds                              | `60000`                 |
+| `DOMAIN_API_URL` / `DOMAIN_API_KEY` | Paid provider config (server-only; used when `external`)   | —                       |
 
-`.env.local` ships with `DOMAIN_CHECK_PROVIDER=mock` so the whole flow works
-offline. Set it to `rdap` for real lookups. A paid API can be added later by
-implementing `DomainAvailabilityProvider` and reading `DOMAIN_API_URL` /
-`DOMAIN_API_KEY` **server-side only**.
+Availability results are cached in-memory server-side for ~5 minutes to reduce
+upstream load (main check + suggestion checks). Secrets are never exposed to the
+client (only `NEXT_PUBLIC_*` values reach the browser).
 
 ## API
 
@@ -83,10 +107,12 @@ real server failure.
 ```txt
 src/
   app/
-    layout.tsx            # fonts, SEO metadata, header/footer, page chrome
+    layout.tsx            # system-font stacks, SEO metadata, header/footer, chrome
     page.tsx              # landing page composition
+    not-found.tsx         # custom 404 page
     globals.css           # Tailwind layers + decorative background
-    api/check-domain/route.ts
+    icon.svg  favicon.ico # brand icons
+    api/check-domain/route.ts   # rate limit -> validate -> registrable -> check
   components/
     Header.tsx  HeroSearch.tsx  DomainSearchForm.tsx
     DomainResultCard.tsx  DomainSuggestionCard.tsx
@@ -94,9 +120,10 @@ src/
     ui/  Button.tsx  Card.tsx  Badge.tsx
   lib/
     domain/  normalize-domain.ts  validate-domain.ts  split-domain.ts
-             checkout-url.ts  suggestion-engine.ts
-             availability-provider.ts  rdap-provider.ts  mock-provider.ts  types.ts
-    utils.ts
+             checkout-url.ts  suggestion-engine.ts  types.ts
+             availability-provider.ts  availability-cache.ts
+             rdap-provider.ts  mock-provider.ts  external-api-provider.ts
+    rate-limit.ts  utils.ts
   tests/  domain-utils.test.ts  suggestion-engine.test.ts
 
 reference/cekdomain.html   # original single-file prototype (design reference only)
@@ -110,6 +137,13 @@ reference/cekdomain.html   # original single-file prototype (design reference on
   overwrite a newer one.
 - **Server-side checks only:** availability logic and any secrets stay on the
   server. The browser never runs the availability engine.
-- **Honest results:** when a lookup is inconclusive we report `unknown` rather
-  than falsely claiming availability. Final ownership is only confirmed by the
+- **Honest results:** when a lookup is inconclusive we report `unknown` (no
+  checkout button, retry offered) rather than falsely claiming availability.
+- **Registrable domains:** subdomains are reduced before checking
+  (`sub.example.com` → `example.com`), preserving multi-part TLDs
+  (`blog.tokoku.co.id` → `tokoku.co.id`).
+- **Fonts:** the build never fetches Google Fonts — the UI uses system-font
+  stacks (Inter/Manrope sans, Georgia display, JetBrains Mono/monospace).
+- **Abuse protection:** per-IP rate limiting (429) plus a short in-memory cache
+  keep upstream RDAP usage low. Final ownership is only confirmed by the
   registrar at checkout.

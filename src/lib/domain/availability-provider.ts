@@ -1,3 +1,8 @@
+import {
+  getCachedAvailability,
+  setCachedAvailability,
+} from "./availability-cache";
+import { ExternalApiAvailabilityProvider } from "./external-api-provider";
 import { MockAvailabilityProvider } from "./mock-provider";
 import { RdapAvailabilityProvider } from "./rdap-provider";
 import type {
@@ -8,13 +13,13 @@ import type {
 /**
  * Provider selection + shared server-side helpers.
  *
- * The active provider is chosen from `DOMAIN_CHECK_PROVIDER`:
- *   - `mock` -> deterministic offline provider (development/testing)
- *   - `rdap` -> real key-less RDAP lookups (production default)
+ * `DOMAIN_CHECK_PROVIDER` chooses the backend:
+ *   - `rdap`     -> real, key-less RDAP lookups (PRODUCTION default)
+ *   - `mock`     -> deterministic offline provider (DEV/TEST ONLY)
+ *   - `external` -> paid/third-party API (needs DOMAIN_API_URL + DOMAIN_API_KEY)
  *
- * A paid/third-party provider can be added later by implementing
- * `DomainAvailabilityProvider` and wiring a new case here (reading
- * `DOMAIN_API_URL` / `DOMAIN_API_KEY` server-side only).
+ * Real providers are wrapped in a short-lived in-memory cache so one search
+ * (which may verify several suggestions) doesn't hammer upstream.
  */
 
 export function getCheckTimeoutMs(): number {
@@ -22,18 +27,59 @@ export function getCheckTimeoutMs(): number {
   return Number.isFinite(raw) && raw > 0 ? raw : 5000;
 }
 
-export function getAvailabilityProvider(): DomainAvailabilityProvider {
+/** Wraps any provider with the short-lived availability cache. */
+class CachedAvailabilityProvider implements DomainAvailabilityProvider {
+  readonly name: string;
+  constructor(private readonly inner: DomainAvailabilityProvider) {
+    this.name = `cached:${inner.name}`;
+  }
+
+  async check(domain: string): Promise<DomainAvailabilityResult> {
+    const cached = getCachedAvailability(domain);
+    if (cached) return cached;
+
+    const result = await this.inner.check(domain);
+    // setCachedAvailability ignores `unknown` results internally.
+    setCachedAvailability(domain, result);
+    return result;
+  }
+}
+
+function createBaseProvider(): DomainAvailabilityProvider {
   const provider = (process.env.DOMAIN_CHECK_PROVIDER ?? "rdap")
     .trim()
     .toLowerCase();
+  const timeout = getCheckTimeoutMs();
 
   switch (provider) {
     case "mock":
       return new MockAvailabilityProvider();
+
+    case "external":
+      if (ExternalApiAvailabilityProvider.isConfigured()) {
+        return new ExternalApiAvailabilityProvider(
+          process.env.DOMAIN_API_URL as string,
+          process.env.DOMAIN_API_KEY as string,
+          timeout,
+        );
+      }
+      // Misconfigured: fall back to RDAP rather than failing every request.
+      console.warn(
+        "[availability] DOMAIN_CHECK_PROVIDER=external but DOMAIN_API_URL/DOMAIN_API_KEY are missing — falling back to RDAP.",
+      );
+      return new RdapAvailabilityProvider(timeout);
+
     case "rdap":
     default:
-      return new RdapAvailabilityProvider(getCheckTimeoutMs());
+      return new RdapAvailabilityProvider(timeout);
   }
+}
+
+export function getAvailabilityProvider(): DomainAvailabilityProvider {
+  const base = createBaseProvider();
+  // The mock provider is deterministic and offline — caching adds nothing.
+  if (base.name === "mock") return base;
+  return new CachedAvailabilityProvider(base);
 }
 
 /**
@@ -44,7 +90,7 @@ export function getAvailabilityProvider(): DomainAvailabilityProvider {
 export async function checkMany(
   provider: DomainAvailabilityProvider,
   domains: string[],
-  concurrency = 6,
+  concurrency = 3,
 ): Promise<DomainAvailabilityResult[]> {
   const results: DomainAvailabilityResult[] = new Array(domains.length);
   let cursor = 0;

@@ -69,3 +69,23 @@ export function splitDomain(domain: string): SplitDomain {
 
   return { name, tld, subdomain };
 }
+
+/**
+ * Reduce any input to its registrable domain (drops subdomains).
+ *
+ * A registration checker should look up the domain a user can actually buy —
+ * `example.com`, not `sub.example.com`. Multi-part TLDs are preserved.
+ *
+ * @example
+ * toRegistrableDomain("sub.example.com")     // "example.com"
+ * toRegistrableDomain("blog.tokoku.co.id")   // "tokoku.co.id"
+ * toRegistrableDomain("tokoku.co.id")        // "tokoku.co.id"
+ * toRegistrableDomain("example.com")         // "example.com"
+ */
+export function toRegistrableDomain(domain: string): string {
+  const { name, tld } = splitDomain(domain);
+  // If we can't confidently split (e.g. invalid input), leave it untouched so
+  // validation can reject it downstream.
+  if (!name || !tld) return String(domain || "");
+  return `${name}.${tld}`;
+}

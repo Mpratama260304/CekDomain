@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { normalizeDomain } from "@/lib/domain/normalize-domain";
+import { toRegistrableDomain } from "@/lib/domain/split-domain";
 import { validateDomain } from "@/lib/domain/validate-domain";
 import type { CheckDomainResponse } from "@/lib/domain/types";
 
@@ -25,9 +26,6 @@ export function HeroSearch() {
   const runCheck = useCallback(async (rawValue: string) => {
     const normalized = normalizeDomain(rawValue);
 
-    // The input is the single source of truth — reflect the cleaned value.
-    setInputValue(normalized);
-
     // Immediately cancel any previous in-flight request so its response can
     // never overwrite this one.
     abortRef.current?.abort();
@@ -35,17 +33,23 @@ export function HeroSearch() {
     // Validate on the client first so we never show a stale valid result.
     const validation = validateDomain(normalized);
     if (!validation.ok) {
+      setInputValue(normalized);
       requestIdRef.current += 1; // invalidate anything still in flight
       setState({ kind: "invalid", message: validation.error ?? FALLBACK_INVALID });
       return;
     }
+
+    // Reduce to the registrable domain so subdomains (sub.example.com) become
+    // example.com. The input is the single source of truth — reflect it.
+    const domain = toRegistrableDomain(normalized);
+    setInputValue(domain);
 
     const myId = (requestIdRef.current += 1);
     const controller = new AbortController();
     abortRef.current = controller;
 
     // Fresh loading state for THIS domain — clears previous result/suggestions.
-    setState({ kind: "loading", domain: normalized });
+    setState({ kind: "loading", domain });
     requestAnimationFrame(() => {
       resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
@@ -54,7 +58,7 @@ export function HeroSearch() {
       const res = await fetch("/api/check-domain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: normalized }),
+        body: JSON.stringify({ domain }),
         signal: controller.signal,
       });
 

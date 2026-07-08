@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Check,
   HelpCircle,
+  RotateCw,
   ShoppingCart,
   WifiOff,
   X,
@@ -193,6 +194,20 @@ export function DomainResultCard({ state, onTryAgain }: DomainResultCardProps) {
             >
               {data.message}
             </p>
+            {isUnknown && (
+              <button
+                type="button"
+                onClick={() => onTryAgain(data.domain)}
+                className={buttonVariants({
+                  variant: "soft",
+                  size: "sm",
+                  className: "mt-4",
+                })}
+              >
+                <RotateCw className="h-4 w-4" aria-hidden="true" />
+                Try again
+              </button>
+            )}
           </div>
         </div>
       </div>

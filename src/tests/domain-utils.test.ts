@@ -5,7 +5,7 @@ import {
   DEFAULT_CHECKOUT_BASE_URL,
 } from "@/lib/domain/checkout-url";
 import { normalizeDomain } from "@/lib/domain/normalize-domain";
-import { splitDomain } from "@/lib/domain/split-domain";
+import { splitDomain, toRegistrableDomain } from "@/lib/domain/split-domain";
 import { validateDomain } from "@/lib/domain/validate-domain";
 
 describe("normalizeDomain", () => {
@@ -97,6 +97,23 @@ describe("splitDomain", () => {
       tld: "co.id",
       subdomain: "",
     });
+  });
+});
+
+describe("toRegistrableDomain", () => {
+  it("drops subdomains down to the registrable domain", () => {
+    expect(toRegistrableDomain("sub.example.com")).toBe("example.com");
+    expect(toRegistrableDomain("blog.shop.example.com")).toBe("example.com");
+  });
+
+  it("keeps already-registrable domains unchanged", () => {
+    expect(toRegistrableDomain("example.com")).toBe("example.com");
+    expect(toRegistrableDomain("nama-domain.net")).toBe("nama-domain.net");
+  });
+
+  it("preserves multi-part TLDs", () => {
+    expect(toRegistrableDomain("blog.tokoku.co.id")).toBe("tokoku.co.id");
+    expect(toRegistrableDomain("tokoku.co.id")).toBe("tokoku.co.id");
   });
 });
 
