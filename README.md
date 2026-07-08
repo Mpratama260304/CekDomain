@@ -9,12 +9,29 @@ the domain pre-filled.
 ## Tech stack
 
 - **Next.js (App Router)** + **TypeScript**
-- **Tailwind CSS** for styling
+- **Tailwind CSS** for styling (system-font stacks — no Google Fonts at build)
 - **Zod** for request validation
 - **Lucide React** for icons
 - **Vitest** for unit tests
-- Server-side availability via **RDAP** (no API keys required), with a
-  deterministic **mock** provider for local development
+- Real availability via a **registrar/reseller API** (Name.com, GoDaddy, or a
+  configurable generic adapter). **RDAP** is a best-effort fallback; a clearly
+  labelled **unsafe mock** exists for offline dev/tests only.
+
+## ⚠️ Production accuracy requirement
+
+Domain availability must come from a **real registrar/reseller API** — never from
+mock or RDAP-only guessing:
+
+- Use `DOMAIN_CHECK_PROVIDER=registrar` and configure **Name.com**, **GoDaddy**,
+  **Marketku**, or another real registrar/reseller API.
+- **Do not publish CekDomain.ink with the mock provider enabled. Mock results are
+  fake and will produce wrong availability results.**
+- RDAP-only is best-effort and can return `unknown`/inconclusive — it never
+  overrides the registrar and is only a secondary signal.
+- Final ownership is only confirmed after a successful checkout.
+
+The app **fails closed**: if the registrar isn't configured it returns a clear
+error instead of a fake result. Mock is forbidden in production.
 
 ## Getting started
 
@@ -23,57 +40,66 @@ the domain pre-filled.
 npm install
 
 # 2. Configure environment
-#    Local development (offline mock provider):
+#    Local development (REAL, key-less RDAP results — great default):
 cp .env.local.example .env.local
-#    Production-like (real RDAP lookups):
-#    cp .env.example .env.local   # then edit as needed
+#    Production (real registrar API):
+#    cp .env.example .env.local   # then fill in registrar credentials
 
 # 3. Run the dev server
-npm run dev
-# open http://localhost:3000
+npm run dev            # open http://localhost:3000
 
 # Other scripts
-npm run build      # production build (no Google Fonts fetch required)
-npm run start      # run the production build
-npm run lint       # eslint
-npm run typecheck  # tsc --noEmit
-npm run test       # vitest unit tests
+npm run build          # production build (no Google Fonts fetch)
+npm run start          # run the production build
+npm run lint           # eslint
+npm run typecheck      # tsc --noEmit
+npm run test           # vitest unit tests
+npm run qa:domains     # check a sample list with the ACTIVE provider (prints source/confidence)
 ```
 
 ## Provider modes (important)
 
 `DOMAIN_CHECK_PROVIDER` selects how availability is checked — **server-side only**:
 
-| Value      | Meaning                                                                 | Use in production?          |
-| ---------- | ----------------------------------------------------------------------- | --------------------------- |
-| `rdap`     | **Real** availability via the public RDAP protocol (no API keys needed) | ✅ Yes (default)            |
-| `mock`     | **Fake** deterministic results for local demo/testing only              | ❌ **Never** in production  |
-| `external` | Paid/third-party API (needs `DOMAIN_API_URL` + `DOMAIN_API_KEY`)        | ✅ Optional                 |
+| Value       | Meaning                                                                       | Use in production?                    |
+| ----------- | ----------------------------------------------------------------------------- | ------------------------------------- |
+| `registrar` | **Real** registrar/reseller API — the authoritative source of truth           | ✅ **Yes (required default)**         |
+| `rdap`      | **Best-effort** RDAP (no keys); fallback/secondary only, can be `unknown`      | ⚠️ Only with `ALLOW_RDAP_ONLY_PRODUCTION=true` |
+| `mock`      | **FAKE** deterministic results for offline dev/tests                          | ❌ **Forbidden** in production         |
 
-- Production must use `rdap` (or `external`). **Do not deploy with `mock`.**
-- `.env.example` is the production-like template and uses `rdap`.
-- `.env.local.example` is the local template and uses `mock`.
-- If `external` is selected but its env vars are missing, the app logs a warning
-  and safely falls back to `rdap`.
+- `registrar` picks a concrete adapter via `REGISTRAR_API_PROVIDER`
+  (`namecom` \| `godaddy` \| `generic`). If credentials are missing the API
+  returns `500 { "error": "Registrar availability API is not configured." }`.
+- `mock` requires `ALLOW_MOCK_PROVIDER=true` and is **blocked entirely** when
+  `NODE_ENV=production` (`500 { "error": "Mock domain provider is disabled in production." }`).
+  When active in dev it prints a loud console warning and shows a
+  “Mock mode: fake results” badge in the UI.
+- There is **no silent fallback**: a misconfigured provider fails closed rather
+  than returning misleading results.
+- `.env.example` = production (`registrar`); `.env.local.example` = dev (`rdap`).
 
 ## Environment variables
 
-| Variable                        | Description                                                      | Default                 |
-| ------------------------------- | --------------------------------------------------------------- | ----------------------- |
-| `DOMAIN_CHECK_PROVIDER`         | `rdap` (real) · `mock` (dev only) · `external` (paid API)       | `rdap`                  |
-| `DOMAIN_CHECK_TIMEOUT_MS`       | Upstream lookup timeout in milliseconds                         | `5000`                  |
-| `NEXT_PUBLIC_CHECKOUT_BASE_URL` | Checkout base URL; the domain is appended as `?domain=`         | marketku.id link        |
-| `NEXT_PUBLIC_SITE_URL`          | Canonical site URL for SEO metadata                             | `https://cekdomain.ink` |
-| `SUGGESTION_CHECK_LIMIT`        | Suggestion candidates verified upstream per registered search   | `8`                     |
-| `SUGGESTION_RETURN_LIMIT`       | Suggestions returned to the client (available first)           | `6`                     |
-| `SUGGESTION_CHECK_CONCURRENCY`  | Parallel upstream suggestion checks                            | `3`                     |
-| `RATE_LIMIT_MAX`                | Max `/api/check-domain` requests per IP per window             | `20`                    |
-| `RATE_LIMIT_WINDOW_MS`          | Rate-limit window in milliseconds                              | `60000`                 |
-| `DOMAIN_API_URL` / `DOMAIN_API_KEY` | Paid provider config (server-only; used when `external`)   | —                       |
+| Variable                        | Description                                                        | Default        |
+| ------------------------------- | ----------------------------------------------------------------- | -------------- |
+| `DOMAIN_CHECK_PROVIDER`         | `registrar` (real) · `rdap` (fallback) · `mock` (dev-only, fake)  | `registrar`    |
+| `REGISTRAR_API_PROVIDER`        | Adapter: `namecom` · `godaddy` · `generic`                        | `generic`      |
+| `REGISTRAR_API_URL` …           | Generic adapter URL/method/key/auth-header/domain-param           | —              |
+| `NAMECOM_USERNAME` / `NAMECOM_API_TOKEN` / `NAMECOM_ENV` | Name.com adapter (`production`\|`test`)    | —              |
+| `GODADDY_API_KEY` / `GODADDY_API_SECRET` / `GODADDY_ENV` | GoDaddy adapter (`production`\|`ote`)      | —              |
+| `ALLOW_RDAP_ONLY_PRODUCTION`    | Permit `rdap` as the sole provider in production                  | `false`        |
+| `ALLOW_MOCK_PROVIDER`           | Permit the fake mock provider (dev only)                          | `false`        |
+| `DOMAIN_CHECK_TIMEOUT_MS`       | RDAP fallback timeout (ms)                                        | `5000`         |
+| `NEXT_PUBLIC_CHECKOUT_BASE_URL` | Checkout base URL; the domain is appended as `?domain=`           | marketku link  |
+| `NEXT_PUBLIC_SITE_URL`          | Canonical site URL for SEO metadata                               | cekdomain.ink  |
+| `SUGGESTION_CHECK_LIMIT`        | Suggestion candidates verified upstream per registered search     | `8`            |
+| `SUGGESTION_RETURN_LIMIT`       | Suggestions returned to the client (available first)              | `6`            |
+| `SUGGESTION_CHECK_CONCURRENCY`  | Parallel upstream suggestion checks                               | `3`            |
+| `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS` | Per-IP rate limit for `/api/check-domain`               | `20` / `60000` |
 
-Availability results are cached in-memory server-side for ~5 minutes to reduce
-upstream load (main check + suggestion checks). Secrets are never exposed to the
-client (only `NEXT_PUBLIC_*` values reach the browser).
+Availability results are cached in-memory server-side for ~5 minutes (definitive
+results only — never `unknown`). Secrets are never exposed to the client (only
+`NEXT_PUBLIC_*` values reach the browser).
 
 ## API
 
@@ -122,9 +148,12 @@ src/
     domain/  normalize-domain.ts  validate-domain.ts  split-domain.ts
              checkout-url.ts  suggestion-engine.ts  types.ts
              availability-provider.ts  availability-cache.ts
-             rdap-provider.ts  mock-provider.ts  external-api-provider.ts
+             providers/  registrar-provider.ts  namecom-provider.ts
+                         godaddy-provider.ts  generic-provider.ts
+                         rdap-provider.ts  unsafe-mock-provider.ts
     rate-limit.ts  utils.ts
-  tests/  domain-utils.test.ts  suggestion-engine.test.ts
+  tests/  domain-utils.test.ts  suggestion-engine.test.ts  providers.test.ts
+scripts/  qa-domains.ts          # `npm run qa:domains`
 
 reference/cekdomain.html   # original single-file prototype (design reference only)
 ```

@@ -67,7 +67,11 @@ export function DomainSuggestionCard({
             className: "mt-auto w-full",
           })}
         >
-          {status === "unknown" ? "Check Again" : "Try This Search"}
+          {status === "unknown"
+            ? "Check Again"
+            : status === "premium"
+              ? "Check premium"
+              : "Try This Search"}
         </button>
       )}
     </div>

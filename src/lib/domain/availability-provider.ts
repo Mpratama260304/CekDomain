@@ -2,9 +2,12 @@ import {
   getCachedAvailability,
   setCachedAvailability,
 } from "./availability-cache";
-import { ExternalApiAvailabilityProvider } from "./external-api-provider";
-import { MockAvailabilityProvider } from "./mock-provider";
-import { RdapAvailabilityProvider } from "./rdap-provider";
+import { RdapAvailabilityProvider } from "./providers/rdap-provider";
+import {
+  createRegistrarProvider,
+  getRegistrarKind,
+} from "./providers/registrar-provider";
+import { UnsafeMockAvailabilityProvider } from "./providers/unsafe-mock-provider";
 import type {
   DomainAvailabilityProvider,
   DomainAvailabilityResult,
@@ -14,17 +17,82 @@ import type {
  * Provider selection + shared server-side helpers.
  *
  * `DOMAIN_CHECK_PROVIDER` chooses the backend:
- *   - `rdap`     -> real, key-less RDAP lookups (PRODUCTION default)
- *   - `mock`     -> deterministic offline provider (DEV/TEST ONLY)
- *   - `external` -> paid/third-party API (needs DOMAIN_API_URL + DOMAIN_API_KEY)
+ *   - `registrar` -> REAL registrar/reseller API (PRODUCTION default, source of truth)
+ *   - `rdap`      -> best-effort RDAP; fallback/secondary only
+ *   - `mock`      -> FAKE deterministic results (DEV/TEST ONLY, must be opted in)
  *
- * Real providers are wrapped in a short-lived in-memory cache so one search
- * (which may verify several suggestions) doesn't hammer upstream.
+ * Strict production rules (fail closed — never return fake/misleading results):
+ *   - `mock` is FORBIDDEN in production, and requires ALLOW_MOCK_PROVIDER=true anywhere.
+ *   - `rdap`-only in production requires ALLOW_RDAP_ONLY_PRODUCTION=true.
+ *   - `registrar` with missing credentials throws a config error (no silent fallback).
  */
+
+/** Thrown when the provider is misconfigured. The route maps it to an HTTP error. */
+export class ProviderConfigError extends Error {
+  readonly status: number;
+  constructor(message: string, status = 500) {
+    super(message);
+    this.name = "ProviderConfigError";
+    this.status = status;
+  }
+}
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
+function flagEnabled(name: string): boolean {
+  return (process.env[name] ?? "").trim().toLowerCase() === "true";
+}
+
+export function getConfiguredProviderName(): string {
+  return (process.env.DOMAIN_CHECK_PROVIDER ?? "registrar").trim().toLowerCase();
+}
 
 export function getCheckTimeoutMs(): number {
   const raw = Number(process.env.DOMAIN_CHECK_TIMEOUT_MS);
   return Number.isFinite(raw) && raw > 0 ? raw : 5000;
+}
+
+/** True when the FAKE mock provider is actually active (used for the dev badge). */
+export function isMockModeActive(): boolean {
+  return (
+    getConfiguredProviderName() === "mock" &&
+    !isProduction() &&
+    flagEnabled("ALLOW_MOCK_PROVIDER")
+  );
+}
+
+/**
+ * Registrar (primary) with RDAP as a SECONDARY signal.
+ *
+ * RDAP is consulted ONLY when the registrar itself returns `unknown` for a
+ * specific domain — it never overrides a definitive registrar answer, and its
+ * contribution is labelled with low confidence. (This is different from a silent
+ * fallback due to misconfiguration, which we forbid — see createSelectedProvider.)
+ */
+class RegistrarWithRdapFallback implements DomainAvailabilityProvider {
+  readonly name = "registrar";
+  constructor(
+    private readonly primary: DomainAvailabilityProvider,
+    private readonly secondary: DomainAvailabilityProvider,
+  ) {}
+
+  async check(domain: string): Promise<DomainAvailabilityResult> {
+    const result = await this.primary.check(domain);
+    if (result.status !== "unknown") return result;
+
+    const fallback = await this.secondary.check(domain);
+    if (fallback.status === "available" || fallback.status === "registered") {
+      return {
+        ...fallback,
+        source: `${this.primary.name}+rdap`,
+        confidence: "weak",
+        reason: `${this.primary.name} unknown; rdap fallback: ${fallback.reason ?? ""}`,
+      };
+    }
+    return result; // stay unknown
+  }
 }
 
 /** Wraps any provider with the short-lived availability cache. */
@@ -45,41 +113,65 @@ class CachedAvailabilityProvider implements DomainAvailabilityProvider {
   }
 }
 
-function createBaseProvider(): DomainAvailabilityProvider {
-  const provider = (process.env.DOMAIN_CHECK_PROVIDER ?? "rdap")
-    .trim()
-    .toLowerCase();
+function createSelectedProvider(): DomainAvailabilityProvider {
+  const provider = getConfiguredProviderName();
   const timeout = getCheckTimeoutMs();
 
   switch (provider) {
-    case "mock":
-      return new MockAvailabilityProvider();
-
-    case "external":
-      if (ExternalApiAvailabilityProvider.isConfigured()) {
-        return new ExternalApiAvailabilityProvider(
-          process.env.DOMAIN_API_URL as string,
-          process.env.DOMAIN_API_KEY as string,
-          timeout,
+    case "mock": {
+      if (isProduction()) {
+        throw new ProviderConfigError(
+          "Mock domain provider is disabled in production.",
         );
       }
-      // Misconfigured: fall back to RDAP rather than failing every request.
-      console.warn(
-        "[availability] DOMAIN_CHECK_PROVIDER=external but DOMAIN_API_URL/DOMAIN_API_KEY are missing — falling back to RDAP.",
-      );
-      return new RdapAvailabilityProvider(timeout);
+      if (!flagEnabled("ALLOW_MOCK_PROVIDER")) {
+        throw new ProviderConfigError(
+          "Mock provider is disabled. Set ALLOW_MOCK_PROVIDER=true to enable FAKE results (development only).",
+        );
+      }
+      return new UnsafeMockAvailabilityProvider();
+    }
 
-    case "rdap":
-    default:
+    case "rdap": {
+      if (isProduction() && !flagEnabled("ALLOW_RDAP_ONLY_PRODUCTION")) {
+        throw new ProviderConfigError(
+          "RDAP-only mode is disabled in production. Set ALLOW_RDAP_ONLY_PRODUCTION=true for best-effort RDAP, or use DOMAIN_CHECK_PROVIDER=registrar.",
+        );
+      }
       return new RdapAvailabilityProvider(timeout);
+    }
+
+    case "registrar":
+    default: {
+      const registrar = createRegistrarProvider();
+      if (!registrar) {
+        throw new ProviderConfigError(
+          "Registrar availability API is not configured.",
+        );
+      }
+      // RDAP is a secondary signal only (never overrides the registrar).
+      return new RegistrarWithRdapFallback(
+        registrar,
+        new RdapAvailabilityProvider(timeout),
+      );
+    }
   }
 }
 
 export function getAvailabilityProvider(): DomainAvailabilityProvider {
-  const base = createBaseProvider();
-  // The mock provider is deterministic and offline — caching adds nothing.
+  const base = createSelectedProvider();
+  // Never cache FAKE mock results.
   if (base.name === "mock") return base;
   return new CachedAvailabilityProvider(base);
+}
+
+/** Diagnostic string for logs / the QA script. */
+export function describeActiveProvider(): string {
+  const provider = getConfiguredProviderName();
+  if (provider === "registrar" || provider === "") {
+    return `registrar:${getRegistrarKind()}`;
+  }
+  return provider;
 }
 
 /**
@@ -106,6 +198,8 @@ export async function checkMany(
           domain,
           available: false,
           status: "unknown",
+          source: "error",
+          confidence: "unknown",
           reason: "check failed",
         };
       }

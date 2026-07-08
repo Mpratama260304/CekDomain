@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   checkMany,
   getAvailabilityProvider,
+  ProviderConfigError,
 } from "@/lib/domain/availability-provider";
 import { createCheckoutUrl } from "@/lib/domain/checkout-url";
 import { normalizeDomain } from "@/lib/domain/normalize-domain";
@@ -27,8 +28,17 @@ const INVALID_MESSAGE =
   "Please enter a valid domain, for example mantapnyoo.com";
 const RATE_LIMIT_MESSAGE =
   "Too many requests. Please wait a moment and try again.";
-const UNKNOWN_MESSAGE =
-  "We couldn't confirm this domain's availability right now. Please try again or continue checking alternatives.";
+
+const MESSAGES: Record<DomainStatus, string> = {
+  available: "Great news! This domain is available.",
+  registered: "This domain is already registered.",
+  premium: "This domain may be available as a premium domain.",
+  reserved:
+    "This domain is reserved and may not be available for normal registration.",
+  unsupported: "This extension is not supported by our checker yet.",
+  invalid: INVALID_MESSAGE,
+  unknown: "We couldn't confirm this domain's availability right now.",
+};
 
 const RequestSchema = z.object({
   domain: z.string({ required_error: "Domain is required" }).min(1).max(255),
@@ -39,34 +49,30 @@ function envInt(name: string, fallback: number): number {
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : fallback;
 }
 
-/** How many suggestion candidates we actually verify upstream per request. */
-function suggestionCheckLimit(): number {
-  return envInt("SUGGESTION_CHECK_LIMIT", 8);
-}
-/** How many suggestions we return to the client. */
-function suggestionReturnLimit(): number {
-  return envInt("SUGGESTION_RETURN_LIMIT", 6);
-}
-/** Parallelism for upstream suggestion checks. */
-function suggestionConcurrency(): number {
-  return envInt("SUGGESTION_CHECK_CONCURRENCY", 3);
-}
+const suggestionCheckLimit = () => envInt("SUGGESTION_CHECK_LIMIT", 8);
+const suggestionReturnLimit = () => envInt("SUGGESTION_RETURN_LIMIT", 6);
+const suggestionConcurrency = () => envInt("SUGGESTION_CHECK_CONCURRENCY", 3);
 
 function invalidResponse() {
   return NextResponse.json({ error: INVALID_MESSAGE }, { status: 400 });
 }
 
+/** Whether a status means the domain can proceed to checkout. */
+function isRegistrable(status: DomainStatus): boolean {
+  return status === "available" || status === "premium";
+}
+
 function statusRank(status: DomainStatus): number {
-  // Available first, then unknown, then registered.
   if (status === "available") return 0;
-  if (status === "unknown") return 1;
-  return 2;
+  if (status === "premium") return 1;
+  if (status === "unknown") return 2;
+  return 3; // registered / reserved / unsupported / invalid
 }
 
 /**
- * Generate candidate alternatives, verify a bounded subset with the provider,
- * and return the best few (available first). Same TLD is guaranteed by the
- * suggestion engine. Only called for REGISTERED domains.
+ * Generate candidate alternatives, verify a bounded subset with the SAME
+ * provider (never mock/RDAP-only in production), and return the best few —
+ * available first, same TLD. Only called for REGISTERED domains.
  */
 async function buildSuggestions(
   provider: DomainAvailabilityProvider,
@@ -81,9 +87,12 @@ async function buildSuggestions(
   return results
     .map<DomainSuggestion>((r) => ({
       domain: r.domain,
-      available: r.available,
+      available: r.status === "available",
       status: r.status,
-      checkoutUrl: r.available ? createCheckoutUrl(r.domain) : null,
+      source: r.source,
+      confidence: r.confidence,
+      // Checkout only for confirmed-available suggestions — never for unknown.
+      checkoutUrl: r.status === "available" ? createCheckoutUrl(r.domain) : null,
     }))
     .sort((a, b) => statusRank(a.status) - statusRank(b.status))
     .slice(0, suggestionReturnLimit());
@@ -126,55 +135,46 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
   const domain = toRegistrableDomain(cleaned);
-  // Re-validate the reduced domain defensively.
   if (!validateDomain(domain).ok) {
     return invalidResponse();
   }
 
+  // --- resolve provider (fail closed on misconfiguration) ---------------
+  let provider: DomainAvailabilityProvider;
+  try {
+    provider = getAvailabilityProvider();
+  } catch (error) {
+    if (error instanceof ProviderConfigError) {
+      // e.g. mock-in-production, missing registrar credentials, rdap-only-in-prod.
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("[check-domain] provider init error:", error);
+    return NextResponse.json(
+      { error: "Domain checker is misconfigured. Please try again later." },
+      { status: 500 },
+    );
+  }
+
   // --- run the availability check ---------------------------------------
   try {
-    const provider = getAvailabilityProvider();
     const main = await provider.check(domain);
+    const status = main.status;
 
-    if (main.status === "available") {
-      const response: CheckDomainResponse = {
-        domain,
-        available: true,
-        status: "available",
-        message: "Domain is available for registration",
-        checkoutUrl: createCheckoutUrl(domain),
-        suggestions: [],
-      };
-      return NextResponse.json(response, { status: 200 });
-    }
+    const suggestions =
+      status === "registered" ? await buildSuggestions(provider, domain) : [];
 
-    if (main.status === "unknown") {
-      // Inconclusive: never claim availability, never show checkout, and don't
-      // fan out more (possibly failing) upstream calls for suggestions.
-      const response: CheckDomainResponse = {
-        domain,
-        available: false,
-        status: "unknown",
-        message: UNKNOWN_MESSAGE,
-        checkoutUrl: null,
-        suggestions: [],
-      };
-      return NextResponse.json(response, { status: 200 });
-    }
-
-    // Registered: offer same-TLD alternatives.
-    const suggestions = await buildSuggestions(provider, domain);
     const response: CheckDomainResponse = {
       domain,
-      available: false,
-      status: "registered",
-      message: "Domain is already registered",
-      checkoutUrl: null,
+      available: status === "available",
+      status,
+      source: main.source,
+      confidence: main.confidence,
+      message: MESSAGES[status] ?? MESSAGES.unknown,
+      checkoutUrl: isRegistrable(status) ? createCheckoutUrl(domain) : null,
       suggestions,
     };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    // Real server failure only — never leak internals to the client.
     console.error("[check-domain] unexpected error:", error);
     return NextResponse.json(
       { error: "Something went wrong while checking this domain. Please try again." },

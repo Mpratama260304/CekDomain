@@ -19,18 +19,30 @@ export function Badge({ className, ...props }: HTMLAttributes<HTMLSpanElement>) 
 const statusText: Record<DomainStatus, string> = {
   available: "Available",
   registered: "Registered",
+  premium: "Premium",
+  reserved: "Reserved",
+  unsupported: "Unsupported",
+  invalid: "Invalid",
   unknown: "Unknown",
 };
 
 const statusColor: Record<DomainStatus, string> = {
   available: "text-success-ink",
   registered: "text-ink-400",
+  premium: "text-primary-700",
+  reserved: "text-ink-400",
+  unsupported: "text-ink-400",
+  invalid: "text-danger",
   unknown: "text-ink-400",
 };
 
 const dotColor: Record<DomainStatus, string> = {
   available: "bg-success",
   registered: "bg-[oklch(70%_0.02_300)]",
+  premium: "bg-primary",
+  reserved: "bg-[oklch(70%_0.02_300)]",
+  unsupported: "bg-[oklch(70%_0.02_300)]",
+  invalid: "bg-danger",
   unknown: "bg-ink-400",
 };
 

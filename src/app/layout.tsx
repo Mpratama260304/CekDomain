@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { isMockModeActive } from "@/lib/domain/availability-provider";
 
 import "./globals.css";
 
@@ -60,6 +61,11 @@ export default function RootLayout({
         <Header />
         {children}
         <Footer />
+        {isMockModeActive() && (
+          <div className="fixed bottom-3 left-3 z-[60] rounded-full bg-warn px-3.5 py-1.5 text-[0.72rem] font-bold uppercase tracking-wide text-white shadow-md">
+            Mock mode: fake results
+          </div>
+        )}
       </body>
     </html>
   );

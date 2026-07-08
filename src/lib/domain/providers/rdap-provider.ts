@@ -1,27 +1,26 @@
 import type {
   DomainAvailabilityProvider,
   DomainAvailabilityResult,
-} from "./types";
+} from "../types";
 
 /**
- * RDAP-based availability provider (production default).
+ * RDAP availability provider — SECONDARY/FALLBACK signal only.
  *
- * RDAP (Registration Data Access Protocol, RFC 7482+) is the modern,
- * standardized successor to WHOIS. We query the public `rdap.org` bootstrap
- * redirector, which forwards the request to the authoritative RDAP server for
- * the domain's TLD. This works WITHOUT any API keys, so nothing secret is ever
- * shipped to the browser.
+ * RDAP (RFC 7482+) is the standardized successor to WHOIS. We query the public
+ * `rdap.org` bootstrap redirector, which forwards to the authoritative RDAP
+ * server for the TLD. It needs no API keys, so nothing secret ships to the
+ * browser.
  *
- * Interpretation of responses:
- *   - HTTP 200 (after redirect) -> a registration record exists -> REGISTERED
- *   - HTTP 404 (after redirect)  -> registry has no record       -> AVAILABLE
- *   - HTTP 404 (NOT redirected)  -> rdap.org has no RDAP service for this TLD
- *                                   -> UNKNOWN (we must not claim availability)
- *   - timeout / network / 429 / 5xx / other -> UNKNOWN (graceful fallback)
+ * IMPORTANT — RDAP is NOT sufficient as a production source of truth for domain
+ * sales. It is used only as a fallback/secondary signal:
+ *   - HTTP 200 (after redirect) + this is the authoritative registry
+ *       -> REGISTERED (confidence: strong)
+ *   - HTTP 404 (after redirect)   -> AVAILABLE (confidence: strong)
+ *   - HTTP 404 (NOT redirected)   -> the TLD has no RDAP service -> UNKNOWN
+ *   - timeout / network / 429 / 5xx / anything ambiguous -> UNKNOWN
  *
- * NOTE: RDAP reflects registry state at query time. It is a strong signal but
- * not a reservation — final registration is only confirmed by the registrar at
- * checkout. The UI communicates this to users.
+ * We NEVER turn an unsupported TLD, a timeout, a rate-limit, or an unexpected
+ * response into "registered". Final ownership is only confirmed at checkout.
  */
 
 const RDAP_ENDPOINT = "https://rdap.org/domain/";
@@ -29,7 +28,6 @@ const MAX_ATTEMPTS = 2; // one retry on transient rate limiting
 const DEFAULT_RETRY_DELAY_MS = 700;
 const MAX_RETRY_DELAY_MS = 1500;
 
-/** Resolve after `ms`, or immediately if the shared deadline is aborted. */
 function delay(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     if (signal.aborted) {
@@ -57,7 +55,6 @@ export class RdapAvailabilityProvider implements DomainAvailabilityProvider {
   }
 
   async check(domain: string): Promise<DomainAvailabilityResult> {
-    // A single controller enforces the total time budget across all attempts.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
@@ -77,37 +74,37 @@ export class RdapAvailabilityProvider implements DomainAvailabilityProvider {
           },
         );
 
-        // Registered: the authoritative registry returned a record.
+        // Registered: authoritative registry returned a record. Only trust a
+        // 200 that actually came from a registry (i.e. we were redirected).
         if (res.status === 200) {
+          if (!res.redirected) {
+            return this.unknown(domain, "rdap: 200 without registry redirect");
+          }
           return {
             domain,
             available: false,
             status: "registered",
+            source: this.name,
+            confidence: "strong",
             reason: "rdap: registry record found",
           };
         }
 
         if (res.status === 404) {
-          // A 404 is only trustworthy as "available" if rdap.org actually
-          // routed us to a registry (redirected). A direct 404 means the TLD
-          // has no known RDAP service — we cannot be sure, so report unknown.
           if (res.redirected) {
             return {
               domain,
               available: true,
               status: "available",
+              source: this.name,
+              confidence: "strong",
               reason: "rdap: no registry record (404)",
             };
           }
-          return {
-            domain,
-            available: false,
-            status: "unknown",
-            reason: "rdap: no RDAP service for this TLD",
-          };
+          // Direct 404 = rdap.org has no RDAP service for this TLD -> ambiguous.
+          return this.unknown(domain, "rdap: no RDAP service for this TLD");
         }
 
-        // Transient rate limiting / unavailability — retry once within budget.
         const transient = res.status === 429 || res.status === 503;
         if (transient && attempt < MAX_ATTEMPTS && !controller.signal.aborted) {
           const retryAfter = Number(res.headers.get("retry-after"));
@@ -121,32 +118,29 @@ export class RdapAvailabilityProvider implements DomainAvailabilityProvider {
           continue;
         }
 
-        // Any other status (or exhausted retries) — do not guess.
-        return {
-          domain,
-          available: false,
-          status: "unknown",
-          reason: `rdap: unexpected status ${res.status}`,
-        };
+        return this.unknown(domain, `rdap: unexpected status ${res.status}`);
       }
 
-      // Retries exhausted without a definitive answer.
-      return {
-        domain,
-        available: false,
-        status: "unknown",
-        reason: "rdap: rate limited",
-      };
+      return this.unknown(domain, "rdap: rate limited");
     } catch (err) {
       const aborted = err instanceof Error && err.name === "AbortError";
-      return {
+      return this.unknown(
         domain,
-        available: false,
-        status: "unknown",
-        reason: aborted ? "rdap: request timed out" : "rdap: lookup failed",
-      };
+        aborted ? "rdap: request timed out" : "rdap: lookup failed",
+      );
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  private unknown(domain: string, reason: string): DomainAvailabilityResult {
+    return {
+      domain,
+      available: false,
+      status: "unknown",
+      source: this.name,
+      confidence: "unknown",
+      reason,
+    };
   }
 }
